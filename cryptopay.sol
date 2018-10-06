@@ -28,7 +28,9 @@ contract KyberPay {
     // 0xCd43d7410295E54922a2C3CF6F2Dd1BD7D18AbD1; // SALT for test until we get DAI
     address public ETHToken = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee;
 
-    // if not allowance first give the allowance
+    // #1 Cases - Pay in DAI
+    // #2 Cases - Pay in Other Token
+
     // then run this function (keep the src address token amount 3% inflated)
         // if ether then send value along with transaction
     function InstantPay(
@@ -51,7 +53,7 @@ contract KyberPay {
                 srcAmt,
                 DAIToken, // dest
                 payTo, // address(this)
-                HowMuchToPay,
+                2**256 - 1,
                 0,
                 0
             );
@@ -147,32 +149,50 @@ contract IssueLoan is DeclaredVar {
 
 }
 
+// #1 Cases - Pay in Ether
+// #2 Cases - Pay in Other Token
+
 contract MakerPay is IssueLoan {
 
-    function DeferredPay(address payTo, uint daiAmt) public payable {
+    function DeferredPay(address payTo, uint daiAmt, address payWith, uint payWithAmt) public payable {
+        uint ethertolock = msg.value;
 
-        // FACTOR // convert any token into ETH and then lock
+        // if not allowance first give the allowance
+        if (payWith != ETHToken) {
+            token tokenFunctions = token(payWith);
+            tokenFunctions.transferFrom(msg.sender, address(this), payWithAmt);
+            Kyber kyberFunctions = Kyber(KyberAddress);
+            ethertolock = kyberFunctions.trade.value(0)(
+                payWith,
+                payWithAmt,
+                ETHToken, // dest
+                address(this), // address(this)
+                2**256 - 1,
+                0,
+                0
+            );
+        }
 
-        // if CDP already there then get passed
+        // if CDP already created then get passed off
         if (BorrowerCDP[msg.sender] == 0x0000000000000000000000000000000000000000000000000000000000000000) {
             BorrowerCDP[msg.sender] = openCDP();
         }
 
         // interchanging required tokens
-        ETH_WETH(msg.value);
-        WETH_PETH(msg.value - msg.value/1000);
-        PETH_CDP(msg.value - msg.value/1000);
+        ETH_WETH(ethertolock);
+        WETH_PETH(ethertolock - ethertolock/1000);
+        PETH_CDP(ethertolock - ethertolock/1000);
 
         // draw DAI
         DAILoanMaster.draw(BorrowerCDP[msg.sender], daiAmt);
+        TransferDAI(payTo, daiAmt);
+    }
 
-        // transfer DAI
+    function TransferDAI(address payTo, uint daiAmt) internal {
         token tokenFunctions = token(DAI);
         tokenFunctions.transfer(payTo, daiAmt);
-
         AllSoldAmt[payTo] += daiAmt;
         AllSoldTx[payTo] += 1;
-
     }
 
 }
