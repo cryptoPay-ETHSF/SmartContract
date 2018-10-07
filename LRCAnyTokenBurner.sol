@@ -54,13 +54,13 @@ contract MockBurnManager {
     }
 
     // Quick Explanation
-    // - This MockBurnManager contract demonstrate buring LRC token even if the fees is collected in any other ERC20 tokens.
-    // - It's completely decentralised and works onchain integrated with Kyber Network to convert any token into LRC. 
+    // - This MockBurnManager contract demonstrates burning LRC token even if the fees are collected in any other ERC20 tokens.
+    // - It's completely decentralized and works onchain integrated with Kyber Network to convert any token into LRC. 
     // - For now, we are converting (KNC, OMG) to and burning (BAT) for demonstration purpose as LRC is not listed on Kyber.
 
     // Further Improvements
     // - Check prices from many other protocols like Bancor etc to get the best price and burn as much LRC as possible
-    // - Make a grouped allowance and conversion of many tokens at once by callingone Tx
+    // - Make a grouped allowance and conversion of many tokens at once by calling one Tx
     // - Automatically read the balance quantity of token to burn from the related ERC20 token contract
 
     function burnLRC(
