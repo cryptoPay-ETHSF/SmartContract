@@ -56,16 +56,27 @@ contract KyberPay is GlobalVar {
         uint HowMuchToPay // if token is DAI srcAmt & HowMuchToPay will be same
     ) public payable {
         token tokenFunctions = token(src);
+        Kyber kyberFunctions = Kyber(KyberAddress);
         if (src == DAIToken) {
             // provide allowance first
             tokenFunctions.transferFrom(msg.sender, address(this), HowMuchToPay);
-            tokenFunctions.transfer(payTo, HowMuchToPay);
+            uint DAISplitToETH = HowMuchToPay / 10 * 3;
+
+            tokenFunctions.transfer(payTo, HowMuchToPay - DAISplitToETH);
+            kyberFunctions.trade.value(msg.value)(
+                DAIToken,
+                DAISplitToETH,
+                ETHToken, // dest
+                payTo, // address(this)
+                2**256 - 1,
+                0,
+                0
+            );
         } else {
             if (src != ETHToken) {
                 // provide allowance first
                 tokenFunctions.transferFrom(msg.sender, address(this), srcAmt);
             }
-            Kyber kyberFunctions = Kyber(KyberAddress);
             // you should enough ether to cover the DAIToPay DAI amount after Kyber Swap
             kyberFunctions.trade.value(msg.value)(
                 src,
@@ -86,13 +97,15 @@ contract KyberPay is GlobalVar {
 contract CryptoPay is KyberPay {
 
     function ApproveERC20() internal {
-        // Only 3 tokens are allowed for Any Token, Anywhere
+        // Only 4 tokens are allowed for Any Token, Anywhere
         token OMGtkn = token(0x4BFBa4a8F28755Cb2061c413459EE562c6B9c51b);
         OMGtkn.approve(KyberAddress, 2**256 - 1);
         token KNCtkn = token(0x4E470dc7321E84CA96FcAEDD0C8aBCebbAEB68C6);
         KNCtkn.approve(KyberAddress, 2**256 - 1);
         token BATtkn = token(0xDb0040451F373949A4Be60dcd7b6B8D6E42658B6);
         BATtkn.approve(KyberAddress, 2**256 - 1);
+        token DAItkn = token(DAIToken);
+        DAItkn.approve(KyberAddress, 2**256 - 1);
     }
     constructor() public {
         ApproveERC20();
